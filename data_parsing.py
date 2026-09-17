@@ -9,11 +9,13 @@ def parse_inventory_response(response:str) -> list[dict]:
 
     if devices:
        for device in devices:
+
           serial = device.get("serialNumber")
           mac = device.get("mac")
           status = device.get("status")
           folder = device.get("additionalData").get("folder")
           folder_id = device.get("additionalData").get("folderId")
+
           device_dict = {
               "serial":serial,
               "mac":mac,
@@ -23,4 +25,5 @@ def parse_inventory_response(response:str) -> list[dict]:
 
           }
           extracted_data.append(device_dict)
+
     return extracted_data

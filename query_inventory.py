@@ -12,5 +12,7 @@ def query_by_serial(session: requests.Session, serial_numbers: list[str]):
 
     if response.status_code != 200:
         response.raise_for_status()
-    print(response.text)
+
+    # print(response.text)
+
     return response.text
