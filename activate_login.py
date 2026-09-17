@@ -14,9 +14,8 @@ def create_activate_session(credential_1:str):
         'credential_0': "username",
         'credential_1': credential_1
     }
-    print(login_data)
     session = requests.session()
     response = session.post(login_url, data=login_data)
     print(f"Login Status Code: {response.status_code}")
-    print(f"Full response:\n{response.text}")
+    print(f"Login response: {response.text}")
     return session

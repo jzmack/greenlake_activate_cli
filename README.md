@@ -11,3 +11,17 @@ Example `.env` file structure:
 ```plain
 CREDENTIAL_1=<your_api_key_here>
 ```
+
+# Usage
+
+Current example usage with made up S/Ns:
+
+```sh
+uv run main.py PHWLKAS02 PHWLKAS03
+```
+
+Or:
+
+```sh
+python3 main.py PHWLKAS02 PHWLKAS03
+```
