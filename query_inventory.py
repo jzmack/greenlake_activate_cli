@@ -2,6 +2,7 @@ import requests
 import json
 
 def query_by_serial(session: requests.Session, serial_numbers: list[str]):
+    """Function to query GreenLake Activate inventory given a list of Serial Numbers"""
     inventory_url = "https://activate.arubanetworks.com/api/ext/inventory.json?action=query"
     payload = {
        "serialNumbers":serial_numbers

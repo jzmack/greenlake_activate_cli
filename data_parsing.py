@@ -1,6 +1,8 @@
 import json
 
 def parse_inventory_response(response:str) -> list[dict]:
+    """Function to extract the data that I want to get from Activate."""
+
     json_obj = json.loads(response)
     extracted_data: list[dict] = [] # each device is a dictionary
     devices = json_obj.get("devices")

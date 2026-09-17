@@ -2,13 +2,13 @@ import requests
 import os
 from dotenv import load_dotenv
 
-def load_credentials():
+def load_credentials() -> str | None:
     """Load credentials from .env file"""
     load_dotenv()
     return os.getenv("CREDENTIAL_1")
 
-def create_activate_session(credential_1:str):
-    """Login and save session cookie"""
+def create_activate_session(credential_1:str) -> requests.Session:
+    """Login and return session."""
     login_url = "https://activate.arubanetworks.com/LOGIN"
     login_data = {
         'credential_0': "username",

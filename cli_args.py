@@ -1,6 +1,8 @@
 import argparse
 
 def parse_cli_args():
+    """Used to create arguments that can be passed during exectuion."""
+
     parser = argparse.ArgumentParser(
         description="Interact with HPE GreenLake Activate via CLI."
     )
