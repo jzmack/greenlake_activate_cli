@@ -1,8 +1,8 @@
-from activate_login import create_activate_session, load_credentials
-from query_inventory import query_by_serial
-from cli_args import parse_cli_args
-from data_parsing import parse_inventory_response
-from display_data import display_inventory_sn
+from glcli.activate_login import create_activate_session,load_credentials
+from glcli.query_inventory import query_by_serial
+from glcli.data_parsing import parse_inventory_response
+from glcli.display_data import display_inventory_sn
+from glcli.cli import parse_cli_args
 
 def main():
     args = parse_cli_args()

@@ -14,5 +14,4 @@ def query_by_serial(session: requests.Session, serial_numbers: list[str]):
         response.raise_for_status()
 
     # print(response.text)
-
     return response.text

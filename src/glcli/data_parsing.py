@@ -26,4 +26,5 @@ def parse_inventory_response(response:str) -> list[dict]:
           }
           extracted_data.append(device_dict)
 
+    # print(extracted_data)
     return extracted_data
