@@ -1,4 +1,7 @@
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 def parse_inventory_response(response:str) -> list[dict]:
     """Function to extract the data that I want to get from Activate."""
@@ -26,5 +29,5 @@ def parse_inventory_response(response:str) -> list[dict]:
           }
           extracted_data.append(device_dict)
 
-    # print(extracted_data)
+    logger.debug("Extracted data:\n%s", extracted_data)
     return extracted_data

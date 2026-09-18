@@ -17,11 +17,11 @@ CREDENTIAL_1=<your_api_key_here>
 Current example usage with made up S/Ns:
 
 ```sh
-uv run main.py PHWLKAS02 PHWLKAS03
+glcli query PHWLKAS02 PHWLKAS03
 ```
 
 Or:
 
 ```sh
-python3 main.py PHWLKAS02 PHWLKAS03
+uv run glcli query PHWLKAS02 PHWLKAS03
 ```

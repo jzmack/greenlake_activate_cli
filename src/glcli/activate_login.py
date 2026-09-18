@@ -1,6 +1,9 @@
 import requests
 import os
+import logging
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 def load_credentials() -> str | None:
     """Load credentials from .env file"""
@@ -14,8 +17,16 @@ def create_activate_session(credential_1:str) -> requests.Session:
         'credential_0': "username",
         'credential_1': credential_1
     }
+    logger.debug("Attempting to authenticate to: %s", login_url)
     session = requests.session()
     response = session.post(login_url, data=login_data)
-    print(f"Login Status Code: {response.status_code}")
-    print(f"Login response: {response.text}")
+
+    logger.debug("Login status code: %s", response.status_code)
+    if response.status_code != 200:
+        logger.error("Login failed: %s", response.text)
+        raise RuntimeError("Activate login failed")
+
+    logger.info("Authenticated to Activate")
+    logger.debug("Full login response: %s", response.text)
+
     return session
