@@ -1,10 +1,11 @@
 import argparse
 import sys
 import logging
+from pathlib import Path
 
 from glcli.activate_login import create_activate_session, load_credentials
 from glcli.data_parsing import parse_inventory_response
-from glcli.query_inventory import query_by_serial
+from glcli.query_inventory import query_by_serial, get_serials
 from glcli.display_data import display_inventory_sn
 from rich.logging import RichHandler
 
@@ -35,18 +36,26 @@ def parse_cli_args(argv=None):
 
     # glcli query
     p_query = subparsers.add_parser("query", help="Query Inventory.")
-    p_query.add_argument(
+    group = p_query.add_mutually_exclusive_group(required=True)
+    group.add_argument(
         "serials",
-        nargs="+",
+        nargs="*",
         metavar="SERIAL",
         help="Serial numbers (space separated) or 'all' to query everything."
+    )
+    group.add_argument(
+        "-f", "--file",
+        type=Path,
+        metavar="PATH",
+        help="CSV or text file containing serial numbers."
     )
     p_query.set_defaults(func=cmd_query)
 
     return parser.parse_args(argv)
 
 def cmd_query(session, args) -> int:
-    query_result, missing = query_by_serial(session, args.serials)
+    serials = get_serials(args)
+    query_result, missing = query_by_serial(session, serials)
     extracted_data = parse_inventory_response(query_result)
 
     if missing:
