@@ -8,31 +8,33 @@ This is a list of ideas for commands I'd like to implement.
 
 ---
 
-`glcli query <device_names>` 
-
-`glcli query <serial_numbers>` 
-
-`glcli query <mac_addresses>` 
-
-Examples:
+Querying devices examples:
 
 ```sh
-glcli query PHQVKSM4FM PHQVKS303H
-glcli query aa:bb:cc:00:11:22 dd:ee:ff:11:22:33
-glcli query south-ap01 south-ap02
+glcli query serial PHQVKSM4FM PHQVKS303H
+glcli query mac aa:bb:cc:00:11:22 dd:ee:ff:11:22:33
+glcli query name south-ap01 south-ap02
 ```
+
+Querying folder example:
+
+`glcli query folder site_1` - return devices in that folder
 
 ---
 
 ### Query-only options
 
 `-f` `--file` <FILENAME> - read a file of Serial Numbers
+
 `-o` `--output` <FILENAME> - output to a file/csv
 
 
-## Folder Query Commands
-
 ## Device move commands
 
-`glcli move <MAC_ADDRESSES> <FOLDER_NAME/ID>`
-`glcli move list <filename> <FOLDER_NAME>`
+`glcli move <MAC_ADDRESSES> <FOLDER_NAME/ID>` - move single device to a folder
+`glcli move list <filename> <FOLDER_NAME>` - move list of devices to folder
+
+## Create commands
+
+`glcli create folder <FOLDER_NAME>` - return code, ID, other data
+`glcli create rule <FOLDER NAME>` - not sure about this one yet

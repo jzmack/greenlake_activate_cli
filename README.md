@@ -25,3 +25,9 @@ Or:
 ```sh
 uv run glcli query PHWLKAS02 PHWLKAS03
 ```
+
+Query using a file:
+
+```sh
+glcli query -f serials.csv
+```
