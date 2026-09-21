@@ -62,23 +62,22 @@ uv tool uninstall greenlake-activate-cli
 
 ### Install With Python and pip
 
-Create a virtual environment, activate it, and install the project from the cloned
-repository:
+Creating a virtual environment and installing the package:
 
 ```sh
-python3.14 -m venv .venv
-. .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install .
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install greenlake-activate-cli
 ```
 
-The `glcli` command is then available directly:
+The `glcli` command is then available from the venv:
 
 ```sh
 glcli --version
 ```
 
-## Configure Credentials
+## Configuration 
 
 Run the CLI `glcli configure` command.
 
@@ -86,7 +85,7 @@ Run the CLI `glcli configure` command.
 glcli configure
 ```
 
-You will be prompted to enter your GreenLake Activate API token. This text is hidden.
+You will be prompted to enter (paste) in your GreenLake Activate API token. This text is hidden.
 
 This command is essentially doing this:
 
