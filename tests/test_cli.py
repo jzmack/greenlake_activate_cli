@@ -65,7 +65,11 @@ def test_serial_command_accepts_file_without_positional_serial(monkeypatch, tmp_
 
     monkeypatch.setattr(cli, "load_credentials", lambda: "token")
     monkeypatch.setattr(cli, "create_activate_session", lambda credential: FakeSession())
-    monkeypatch.setattr(cli, "read_serials_from_file", lambda path: ["SN1", "SN2"])
+    monkeypatch.setattr(
+        cli,
+        "read_identifiers_from_file",
+        lambda path, identifier_type: ["SN1", "SN2"],
+    )
 
     def fake_query(active_session, identifier_type, identifiers):
         captured["query"] = (identifier_type, identifiers)
@@ -78,3 +82,34 @@ def test_serial_command_accepts_file_without_positional_serial(monkeypatch, tmp_
 
     assert result.exit_code == 0
     assert captured["query"] == ("serial", ["SN1", "SN2"])
+
+
+def test_mac_command_accepts_file_without_positional_mac(monkeypatch, tmp_path):
+    runner = CliRunner()
+    captured = {}
+
+    mac_file = tmp_path / "macs.txt"
+    mac_file.write_text("aa:bb:cc:00:11:22\ndd:ee:ff:33:44:55\n")
+
+    monkeypatch.setattr(cli, "load_credentials", lambda: "token")
+    monkeypatch.setattr(cli, "create_activate_session", lambda credential: FakeSession())
+    monkeypatch.setattr(
+        cli,
+        "read_identifiers_from_file",
+        lambda path, identifier_type: ["AA:BB:CC:00:11:22", "DD:EE:FF:33:44:55"],
+    )
+
+    def fake_query(active_session, identifier_type, identifiers):
+        captured["query"] = (identifier_type, identifiers)
+        return '{"devices": [{"mac": "AA:BB:CC:00:11:22"}]}', []
+
+    monkeypatch.setattr(cli, "query_inventory", fake_query)
+    monkeypatch.setattr(cli, "display_inventory_sn", lambda data: None)
+
+    result = runner.invoke(cli.app, ["query", "mac", "--file", str(mac_file)])
+
+    assert result.exit_code == 0
+    assert captured["query"] == (
+        "mac",
+        ["AA:BB:CC:00:11:22", "DD:EE:FF:33:44:55"],
+    )

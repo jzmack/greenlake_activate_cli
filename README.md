@@ -26,14 +26,15 @@ Query inventory by MAC address:
 glcli query mac aa:bb:cc:00:11:22 dd:ee:ff:33:44:55
 ```
 
-Serial numbers can also be loaded from a CSV or newline-delimited file:
+Serial numbers and MAC addresses can also be loaded from CSV or newline-delimited files:
 
 ```sh
 glcli query serial --file serials.csv
+glcli query mac --file mac_addresses.csv
 ```
 
-The file reader accepts a `serial`, `serialNumber`, `serial_number`, `serial number`,
-or `sn` header. MAC file input is not supported yet.
+The file reader uses the first column. Serial files may use a `serial`, `serialNumber`,
+`serial_number`, `serial number`, or `sn` header.
 
 Use `--verbose` for diagnostic logging:
 

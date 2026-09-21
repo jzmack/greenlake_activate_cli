@@ -62,9 +62,15 @@ def query_by_mac(session: requests.Session, mac_addresses: list[str]):
     """Query GreenLake Activate inventory by MAC address."""
     return query_inventory(session, "mac", mac_addresses)
 
-def read_serials_from_file(path: Path) -> list[str]:
-    """Read serial numbers from a CSV or newline-delimited text file."""
-    SERIAL_COLUMNS = {"serial", "serialnumber", "serial_number", "serial number", "sn"}
+def read_identifiers_from_file(path: Path, identifier_type: str = "serial") -> list[str]:
+    """Read serial numbers or MAC addresses from a CSV or newline-delimited file."""
+    if identifier_type not in {"serial", "mac"}:
+        raise ValueError(f"Unsupported identifier type: {identifier_type}")
+
+    columns_by_type = {
+        "serial": {"serial", "serialnumber", "serial_number", "serial number", "sn"},
+        "mac": {"mac", "macaddress", "mac_address", "mac address", "ethernet address"},
+    }
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
 
@@ -75,7 +81,7 @@ def read_serials_from_file(path: Path) -> list[str]:
         raise ValueError(f"File is empty: {path}")
 
     header = [c.strip().lower() for c in rows[0]]
-    col = next((i for i, c in enumerate(header) if c in SERIAL_COLUMNS), None)
+    col = next((i for i, c in enumerate(header) if c in columns_by_type[identifier_type]), None)
 
     if col is None:
         logger.debug("No serial header found in %s; reading first column", path)
@@ -85,14 +91,19 @@ def read_serials_from_file(path: Path) -> list[str]:
         logger.debug("Using column '%s' (index %d)", header[col], col)
         data = rows[1:]
 
-    serials = [
+    identifiers = [
         row[col].strip().upper()
         for row in data
         if row and len(row) > col and row[col].strip()
     ]
 
-    logger.info("Read %d serial(s) from %s", len(serials), path)
-    return serials
+    logger.info("Read %d %s(s) from %s", len(identifiers), identifier_type, path)
+    return identifiers
+
+
+def read_serials_from_file(path: Path) -> list[str]:
+    """Read serial numbers from a CSV or newline-delimited text file."""
+    return read_identifiers_from_file(path, "serial")
 
 
 def get_serials(args) -> list[str]:

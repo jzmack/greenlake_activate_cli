@@ -4,7 +4,7 @@ from pathlib import Path
 import typer
 from glcli.activate_login import create_activate_session, load_credentials
 from glcli.data_parsing import parse_inventory_response
-from glcli.query_inventory import query_inventory, read_serials_from_file
+from glcli.query_inventory import query_inventory, read_identifiers_from_file
 from glcli.display_data import display_inventory_sn
 from rich.logging import RichHandler
 
@@ -23,9 +23,7 @@ def setup_logging(verbose: bool):
 
 def _query(identifier_type: str, identifiers: list[str], file: Path | None = None) -> None:
     if file is not None:
-        if identifier_type != "serial":
-            raise typer.BadParameter("--file is currently supported only for serial queries")
-        identifiers = read_serials_from_file(file)
+        identifiers = read_identifiers_from_file(file, identifier_type)
 
     identifiers = [identifier.strip().upper() for identifier in identifiers if identifier.strip()]
     if not identifiers:
@@ -70,9 +68,10 @@ def query_serial(
 
 @query_app.command("mac")
 def query_mac(
-    macs: list[str] = typer.Argument(..., metavar="MAC"),
+    macs: list[str] | None = typer.Argument(None, metavar="MAC"),
+    file: Path | None = typer.Option(None, "--file", "-f", help="CSV or text file containing MAC addresses."),
 ) -> None:
-    _query("mac", macs)
+    _query("mac", macs or [], file)
 
 
 def main() -> None:
