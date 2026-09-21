@@ -22,6 +22,14 @@ def setup_logging(verbose: bool):
     )
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
+
+def _load_credential() -> str:
+    try:
+        return load_credentials()
+    except RuntimeError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
 def _query(identifier_type: str, identifiers: list[str], file: Path | None = None) -> None:
     if file is not None:
         identifiers = read_identifiers_from_file(file, identifier_type)
@@ -31,7 +39,7 @@ def _query(identifier_type: str, identifiers: list[str], file: Path | None = Non
         raise typer.BadParameter("At least one identifier is required")
 
     identifiers = list(dict.fromkeys(identifiers))
-    credential = load_credentials()
+    credential = _load_credential()
     try:
         session = create_activate_session(credential)
         query_result, missing = query_inventory(session, identifier_type, identifiers)
@@ -58,7 +66,7 @@ def _query_folder(values: list[str]) -> None:
         raise typer.BadParameter("At least one folder ID or name is required")
 
     values = list(dict.fromkeys(values))
-    credential = load_credentials()
+    credential = _load_credential()
     session = None
     try:
         session = create_activate_session(credential)

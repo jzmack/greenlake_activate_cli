@@ -4,13 +4,125 @@ The purpose of this is to help manage devices in HPE GreenLake Activate with an 
 
 # Setup
 
-Create `.env` file with GreenLake Activate token (may need to include instructions on how to get that). The only variable you need is `CREDENTIAL_1`.
+## Requirements
 
-Example `.env` file structure:
+- Python 3.14 or newer
+- An HPE GreenLake Activate API credential
+- Network access to `activate.arubanetworks.com`
+
+The CLI uses the following Python packages, which are installed automatically:
+
+- Typer
+- Requests
+- Rich
+- Python Dotenv
+
+## Install With uv
+
+[Install uv](https://docs.astral.sh/uv/getting-started/installation/) if it is not
+already available. For a published release, install the CLI as a global command:
+
+```sh
+uv tool install greenlake-activate-cli
+```
+
+This installs the CLI in an isolated environment and makes `glcli` available from
+any directory. If uv reports that its tool directory is not on your `PATH`, run:
+
+```sh
+uv tool update-shell
+```
+
+Restart your shell, then verify the installation:
+
+```sh
+glcli --help
+```
+
+To upgrade or remove the installed CLI:
+
+```sh
+uv tool upgrade greenlake-activate-cli
+uv tool uninstall greenlake-activate-cli
+```
+
+`pipx` is an alternative isolated installer:
+
+```sh
+pipx install greenlake-activate-cli
+```
+
+For development from a source checkout, clone the repository and run:
+
+```sh
+git clone <repository-url>
+cd greenlake_activate_cli
+uv sync
+```
+
+The `uv sync` command creates the project environment, installs the application and
+its dependencies, and makes the `glcli` command available through `uv run`:
+
+```sh
+uv run glcli --help
+```
+
+To install the development dependencies, including the test suite, use:
+
+```sh
+uv sync --dev
+```
+
+## Install With Python and pip
+
+Create a virtual environment, activate it, and install the project from the cloned
+repository:
+
+```sh
+python3.14 -m venv .venv
+. .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install .
+```
+
+The `glcli` command is then available directly:
+
+```sh
+glcli --help
+```
+
+## Configure Credentials
+
+The recommended configuration file is:
+
+```sh
+mkdir -p ~/.config/greenlake-activate-cli
+printf 'CREDENTIAL_1=your_api_key_here\n' \
+	> ~/.config/greenlake-activate-cli/.env
+chmod 600 ~/.config/greenlake-activate-cli/.env
+```
+
+The CLI also accepts the environment variable directly:
+
+```sh
+export CREDENTIAL_1="your_api_key_here"
+```
+
+Credential sources are checked in this order:
+
+1. A non-empty `CREDENTIAL_1` environment variable.
+2. `$XDG_CONFIG_HOME/greenlake-activate-cli/.env`, when `XDG_CONFIG_HOME` is set.
+3. `~/.config/greenlake-activate-cli/.env`.
+4. `.env` in the current directory, retained for development and backward compatibility.
+
+The configuration file format is:
 
 ```plain
 CREDENTIAL_1=<your_api_key_here>
 ```
+
+Do not commit `.env` or share the credential. If no source contains `CREDENTIAL_1`,
+the CLI reports the supported locations and exits before sending an inventory query.
 
 # Usage
 

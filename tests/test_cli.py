@@ -156,3 +156,18 @@ def test_folder_command_resolves_names_before_query(monkeypatch):
 
     assert result.exit_code == 0
     assert captured["query"] == ("folder", ["5297450"])
+
+
+def test_query_reports_missing_credentials(monkeypatch):
+    runner = CliRunner()
+
+    monkeypatch.setattr(
+        cli,
+        "load_credentials",
+        lambda: (_ for _ in ()).throw(RuntimeError("CREDENTIAL_1 is not configured")),
+    )
+
+    result = runner.invoke(cli.app, ["query", "serial", "SN1"])
+
+    assert result.exit_code != 0
+    assert "CREDENTIAL_1 is not configured" in result.stderr
