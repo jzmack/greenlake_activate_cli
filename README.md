@@ -26,6 +26,19 @@ Query inventory by MAC address:
 glcli query mac aa:bb:cc:00:11:22 dd:ee:ff:33:44:55
 ```
 
+Query inventory by folder ID or folder name:
+
+```sh
+glcli query folder 5297450
+glcli query folder SiteA-South
+glcli query folder SiteA-South 5389522
+```
+
+Folder names are matched case-insensitively and exactly. Numeric values are treated
+as folder IDs. Folder names are resolved through Activate before the inventory query;
+unknown or ambiguous names are rejected. Folder queries currently accept positional
+values only and do not support `--file`.
+
 Serial numbers and MAC addresses can also be loaded from CSV or newline-delimited files:
 
 ```sh

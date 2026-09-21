@@ -46,6 +46,18 @@ def test_mac_query_uses_devices_payload_and_matches_case_insensitively():
     assert missing == ["DD:EE:FF:33:44:55"]
 
 
+def test_folder_query_uses_folders_payload():
+    session = FakeSession({"devices": [{"serialNumber": "SN1"}]})
+
+    response, missing = query_inventory(session, "folder", ["5297450", "5389522"])
+
+    assert json.loads(session.calls[0][1].removeprefix("json=")) == {
+        "folders": ["5297450", "5389522"]
+    }
+    assert json.loads(response)["devices"][0]["serialNumber"] == "SN1"
+    assert missing == []
+
+
 def test_invalid_inventory_json_is_reported():
     session = FakeSession({"devices": []})
     session.post = lambda url, data, timeout: type("Response", (), {"status_code": 200, "text": "bad"})()

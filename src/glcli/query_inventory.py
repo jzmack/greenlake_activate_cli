@@ -16,6 +16,9 @@ def query_inventory(session: requests.Session, identifier_type: str, identifiers
     elif identifier_type == "mac":
         payload = {"devices": identifiers}
         response_key = "mac"
+    elif identifier_type == "folder":
+        payload = {"folders": identifiers}
+        response_key = None
     else:
         raise ValueError(f"Unsupported inventory query type: {identifier_type}")
 
@@ -37,12 +40,15 @@ def query_inventory(session: requests.Session, identifier_type: str, identifiers
     if not isinstance(json_response, dict) or not isinstance(json_response.get("devices", []), list):
         raise RuntimeError("Activate returned an invalid inventory response")
 
-    found = {
-        str(device[response_key]).upper()
-        for device in json_response.get("devices", [])
-        if isinstance(device, dict) and device.get(response_key)
-    }
-    missing = [identifier for identifier in identifiers if identifier.upper() not in found]
+    if response_key is None:
+        missing = []
+    else:
+        found = {
+            str(device[response_key]).upper()
+            for device in json_response.get("devices", [])
+            if isinstance(device, dict) and device.get(response_key)
+        }
+        missing = [identifier for identifier in identifiers if identifier.upper() not in found]
 
     if missing:
         logger.warning("Not found in Activate inventory: %s", ", ".join(missing))
@@ -61,6 +67,11 @@ def query_by_serial(session: requests.Session, serial_numbers: list[str]):
 def query_by_mac(session: requests.Session, mac_addresses: list[str]):
     """Query GreenLake Activate inventory by MAC address."""
     return query_inventory(session, "mac", mac_addresses)
+
+
+def query_by_folder(session: requests.Session, folder_ids: list[str]):
+    """Query GreenLake Activate inventory by folder ID."""
+    return query_inventory(session, "folder", folder_ids)
 
 def read_identifiers_from_file(path: Path, identifier_type: str = "serial") -> list[str]:
     """Read serial numbers or MAC addresses from a CSV or newline-delimited file."""

@@ -113,3 +113,46 @@ def test_mac_command_accepts_file_without_positional_mac(monkeypatch, tmp_path):
         "mac",
         ["AA:BB:CC:00:11:22", "DD:EE:FF:33:44:55"],
     )
+
+
+def test_folder_command_queries_numeric_ids(monkeypatch):
+    runner = CliRunner()
+    captured = {}
+    session = FakeSession()
+
+    monkeypatch.setattr(cli, "load_credentials", lambda: "token")
+    monkeypatch.setattr(cli, "create_activate_session", lambda credential: session)
+
+    def fake_query(active_session, identifier_type, identifiers):
+        captured["query"] = (identifier_type, identifiers)
+        return '{"devices": [{"serialNumber": "SN1"}]}', []
+
+    monkeypatch.setattr(cli, "query_inventory", fake_query)
+    monkeypatch.setattr(cli, "display_inventory_sn", lambda data: None)
+
+    result = runner.invoke(cli.app, ["query", "folder", "5297450", "5389522"])
+
+    assert result.exit_code == 0
+    assert captured["query"] == ("folder", ["5297450", "5389522"])
+    assert session.closed is True
+
+
+def test_folder_command_resolves_names_before_query(monkeypatch):
+    runner = CliRunner()
+    captured = {}
+
+    monkeypatch.setattr(cli, "load_credentials", lambda: "token")
+    monkeypatch.setattr(cli, "create_activate_session", lambda credential: FakeSession())
+    monkeypatch.setattr(cli, "resolve_folder_ids", lambda session, values: ["5297450"])
+
+    def fake_query(active_session, identifier_type, identifiers):
+        captured["query"] = (identifier_type, identifiers)
+        return '{"devices": [{"serialNumber": "SN1"}]}', []
+
+    monkeypatch.setattr(cli, "query_inventory", fake_query)
+    monkeypatch.setattr(cli, "display_inventory_sn", lambda data: None)
+
+    result = runner.invoke(cli.app, ["query", "folder", "SiteA-South"])
+
+    assert result.exit_code == 0
+    assert captured["query"] == ("folder", ["5297450"])

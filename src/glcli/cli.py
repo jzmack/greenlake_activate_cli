@@ -5,6 +5,7 @@ import typer
 from glcli.activate_login import create_activate_session, load_credentials
 from glcli.data_parsing import parse_inventory_response
 from glcli.query_inventory import query_inventory, read_identifiers_from_file
+from glcli.query_folder import resolve_folder_ids
 from glcli.display_data import display_inventory_sn
 from rich.logging import RichHandler
 
@@ -51,6 +52,32 @@ def _query(identifier_type: str, identifiers: list[str], file: Path | None = Non
         raise typer.Exit(code=2)
 
 
+def _query_folder(values: list[str]) -> None:
+    values = [value.strip() for value in values if value.strip()]
+    if not values:
+        raise typer.BadParameter("At least one folder ID or name is required")
+
+    values = list(dict.fromkeys(values))
+    credential = load_credentials()
+    session = None
+    try:
+        session = create_activate_session(credential)
+        try:
+            folder_ids = resolve_folder_ids(session, values)
+        except ValueError as exc:
+            raise typer.BadParameter(str(exc)) from exc
+        query_result, missing = query_inventory(session, "folder", folder_ids)
+    finally:
+        if session is not None:
+            session.close()
+
+    extracted_data = parse_inventory_response(query_result)
+    display_inventory_sn(extracted_data)
+
+    if not extracted_data:
+        raise typer.Exit(code=1)
+
+
 @app.callback()
 def main_callback(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debugging output to console."),
@@ -72,6 +99,13 @@ def query_mac(
     file: Path | None = typer.Option(None, "--file", "-f", help="CSV or text file containing MAC addresses."),
 ) -> None:
     _query("mac", macs or [], file)
+
+
+@query_app.command("folder")
+def query_folder(
+    folders: list[str] = typer.Argument(..., metavar="FOLDER_ID_OR_NAME"),
+) -> None:
+    _query_folder(folders)
 
 
 def main() -> None:
