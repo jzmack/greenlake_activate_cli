@@ -54,3 +54,27 @@ def test_mac_command_passes_mac_values(monkeypatch):
         "mac",
         ["AA:BB:CC:00:11:22", "DD:EE:FF:33:44:55"],
     )
+
+
+def test_serial_command_accepts_file_without_positional_serial(monkeypatch, tmp_path):
+    runner = CliRunner()
+    captured = {}
+
+    serial_file = tmp_path / "serials.txt"
+    serial_file.write_text("SN1\nSN2\n")
+
+    monkeypatch.setattr(cli, "load_credentials", lambda: "token")
+    monkeypatch.setattr(cli, "create_activate_session", lambda credential: FakeSession())
+    monkeypatch.setattr(cli, "read_serials_from_file", lambda path: ["SN1", "SN2"])
+
+    def fake_query(active_session, identifier_type, identifiers):
+        captured["query"] = (identifier_type, identifiers)
+        return '{"devices": [{"serialNumber": "SN1"}]}', []
+
+    monkeypatch.setattr(cli, "query_inventory", fake_query)
+    monkeypatch.setattr(cli, "display_inventory_sn", lambda data: None)
+
+    result = runner.invoke(cli.app, ["query", "serial", "--file", str(serial_file)])
+
+    assert result.exit_code == 0
+    assert captured["query"] == ("serial", ["SN1", "SN2"])

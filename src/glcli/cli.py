@@ -62,10 +62,10 @@ def main_callback(
 
 @query_app.command("serial")
 def query_serial(
-    serials: list[str] = typer.Argument(..., metavar="SERIAL"),
+    serials: list[str] | None = typer.Argument(None, metavar="SERIAL"),
     file: Path | None = typer.Option(None, "--file", "-f", help="CSV or text file containing serial numbers."),
 ) -> None:
-    _query("serial", serials, file)
+    _query("serial", serials or [], file)
 
 
 @query_app.command("mac")
