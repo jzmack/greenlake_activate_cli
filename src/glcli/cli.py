@@ -1,4 +1,5 @@
 import logging
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 import typer
@@ -22,6 +23,17 @@ def setup_logging(verbose: bool):
     )
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
+
+def get_version() -> str:
+    try:
+        return version("greenlake-activate-cli")
+    except PackageNotFoundError:
+        return "dev"
+
+def show_version(value:bool) -> None:
+    if value:
+        typer.echo(f"glcli {get_version()}")
+        raise typer.Exit()
 
 def _load_credential() -> str:
     try:
@@ -89,6 +101,7 @@ def _query_folder(values: list[str]) -> None:
 @app.callback()
 def main_callback(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debugging output to console."),
+    version: bool = typer.Option(False, "--version", callback=show_version, is_eager=True, help="Show the installed version.")
 ) -> None:
     setup_logging(verbose)
 
