@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 import typer
-from glcli.activate_login import create_activate_session, load_credentials
+from glcli.activate_login import create_activate_session, load_credentials, save_user_credential
 from glcli.data_parsing import parse_inventory_response
 from glcli.query_inventory import query_inventory, read_identifiers_from_file
 from glcli.query_folder import resolve_folder_ids
@@ -91,6 +91,17 @@ def main_callback(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debugging output to console."),
 ) -> None:
     setup_logging(verbose)
+
+
+@app.command("configure")
+def configure() -> None:
+    """Save the Activate credential for future commands."""
+    credential = typer.prompt("GreenLake Activate credential", hide_input=True, confirmation_prompt=True)
+    try:
+        config_path = save_user_credential(credential)
+    except (OSError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    typer.echo(f"Credential saved to {config_path}")
 
 
 @query_app.command("serial")

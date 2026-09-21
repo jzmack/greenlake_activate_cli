@@ -17,10 +17,14 @@ The CLI uses the following Python packages, which are installed automatically:
 - Rich
 - Python Dotenv
 
-## Install With uv
+## Installation
+
+Installing with `uv` is my recommendation.
 
 [Install uv](https://docs.astral.sh/uv/getting-started/installation/) if it is not
-already available. For a published release, install the CLI as a global command:
+already available.
+
+To install the latest published package as a global command:
 
 ```sh
 uv tool install greenlake-activate-cli
@@ -46,34 +50,7 @@ uv tool upgrade greenlake-activate-cli
 uv tool uninstall greenlake-activate-cli
 ```
 
-`pipx` is an alternative isolated installer:
-
-```sh
-pipx install greenlake-activate-cli
-```
-
-For development from a source checkout, clone the repository and run:
-
-```sh
-git clone <repository-url>
-cd greenlake_activate_cli
-uv sync
-```
-
-The `uv sync` command creates the project environment, installs the application and
-its dependencies, and makes the `glcli` command available through `uv run`:
-
-```sh
-uv run glcli --help
-```
-
-To install the development dependencies, including the test suite, use:
-
-```sh
-uv sync --dev
-```
-
-## Install With Python and pip
+### Install With Python and pip
 
 Create a virtual environment, activate it, and install the project from the cloned
 repository:
@@ -93,7 +70,15 @@ glcli --help
 
 ## Configure Credentials
 
-The recommended configuration file is:
+Run the CLI `glcli configure` command.
+
+```sh
+glcli configure
+```
+
+You will be prompted to enter your GreenLake Activate API token. This text is hidden.
+
+This command is essentially doing this:
 
 ```sh
 mkdir -p ~/.config/greenlake-activate-cli
@@ -102,7 +87,7 @@ printf 'CREDENTIAL_1=your_api_key_here\n' \
 chmod 600 ~/.config/greenlake-activate-cli/.env
 ```
 
-The CLI also accepts the environment variable directly:
+Alternatively, you can set the environment variable manually:
 
 ```sh
 export CREDENTIAL_1="your_api_key_here"
@@ -120,9 +105,6 @@ The configuration file format is:
 ```plain
 CREDENTIAL_1=<your_api_key_here>
 ```
-
-Do not commit `.env` or share the credential. If no source contains `CREDENTIAL_1`,
-the CLI reports the supported locations and exits before sending an inventory query.
 
 # Usage
 

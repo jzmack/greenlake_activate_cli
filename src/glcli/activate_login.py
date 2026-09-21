@@ -23,6 +23,20 @@ def credential_config_paths() -> tuple[Path, Path]:
     return user_config_path(), Path.cwd() / ".env"
 
 
+def save_user_credential(credential: str) -> Path:
+    """Save a credential in the user-level dotenv configuration file."""
+    credential = credential.strip()
+    if not credential:
+        raise ValueError("CREDENTIAL_1 cannot be empty")
+
+    config_path = user_config_path()
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.parent.chmod(0o700)
+    config_path.write_text(f"{ENVIRONMENT_VARIABLE}={credential}\n", encoding="utf-8")
+    config_path.chmod(0o600)
+    return config_path
+
+
 def load_credentials() -> str:
     """Load credentials using environment, user config, then local config."""
     credential = os.environ.get(ENVIRONMENT_VARIABLE, "").strip()
