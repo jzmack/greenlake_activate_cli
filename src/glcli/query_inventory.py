@@ -5,35 +5,62 @@ import csv
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+REQUEST_TIMEOUT = 30
 
-def query_by_serial(session: requests.Session, serial_numbers: list[str]):
-    """Function to query GreenLake Activate inventory given a list of Serial Numbers"""
+def query_inventory(session: requests.Session, identifier_type: str, identifiers: list[str]):
+    """Query GreenLake Activate inventory by serial number or MAC address."""
     inventory_url = "https://activate.arubanetworks.com/api/ext/inventory.json?action=query"
-    payload = {
-       "serialNumbers":serial_numbers
-    }
-    raw_data = f"json={json.dumps(payload)}"
-    logging.debug("Query string: %s", raw_data)
+    if identifier_type == "serial":
+        payload = {"serialNumbers": identifiers}
+        response_key = "serialNumber"
+    elif identifier_type == "mac":
+        payload = {"devices": identifiers}
+        response_key = "mac"
+    else:
+        raise ValueError(f"Unsupported inventory query type: {identifier_type}")
 
-    logging.debug("Attempting to query activate inventory: %s", inventory_url)
-    response = session.post(inventory_url, data=raw_data)
+    raw_data = f"json={json.dumps(payload)}"
+    logger.debug("Query string: %s", raw_data)
+
+    logger.debug("Attempting to query activate inventory: %s", inventory_url)
+    response = session.post(inventory_url, data=raw_data, timeout=REQUEST_TIMEOUT)
 
     if response.status_code != 200:
-        logging.error("Query failure code: %s", response.status_code)
+        logger.error("Query failure code: %s", response.status_code)
         raise RuntimeError("Query failed.")
 
-    json_response:dict = json.loads(response.text)
+    try:
+        json_response = json.loads(response.text)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("Activate returned invalid JSON") from exc
 
-    found = {d["serialNumber"].upper() for d in json_response.get("devices", [])}
-    missing = [s for s in serial_numbers if s.upper() not in found]
+    if not isinstance(json_response, dict) or not isinstance(json_response.get("devices", []), list):
+        raise RuntimeError("Activate returned an invalid inventory response")
+
+    found = {
+        str(device[response_key]).upper()
+        for device in json_response.get("devices", [])
+        if isinstance(device, dict) and device.get(response_key)
+    }
+    missing = [identifier for identifier in identifiers if identifier.upper() not in found]
 
     if missing:
         logger.warning("Not found in Activate inventory: %s", ", ".join(missing))
 
-    logging.info("Query succeeded!")
-    logging.debug("Full query response:\n%s", response.text )
+    logger.info("Query succeeded!")
+    logger.debug("Full query response:\n%s", response.text)
 
     return response.text, missing
+
+
+def query_by_serial(session: requests.Session, serial_numbers: list[str]):
+    """Query GreenLake Activate inventory by serial number."""
+    return query_inventory(session, "serial", serial_numbers)
+
+
+def query_by_mac(session: requests.Session, mac_addresses: list[str]):
+    """Query GreenLake Activate inventory by MAC address."""
+    return query_inventory(session, "mac", mac_addresses)
 
 def read_serials_from_file(path: Path) -> list[str]:
     """Read serial numbers from a CSV or newline-delimited text file."""

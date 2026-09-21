@@ -14,20 +14,38 @@ CREDENTIAL_1=<your_api_key_here>
 
 # Usage
 
-Current example usage with made up S/Ns:
+Query inventory by serial number:
 
 ```sh
-glcli query PHWLKAS02 PHWLKAS03
+glcli query serial PHWLKAS02 PHWLKAS03
 ```
 
-Or:
+Query inventory by MAC address:
 
 ```sh
-uv run glcli query PHWLKAS02 PHWLKAS03
+glcli query mac aa:bb:cc:00:11:22 dd:ee:ff:33:44:55
 ```
 
-Query using a file:
+Serial numbers can also be loaded from a CSV or newline-delimited file:
 
 ```sh
-glcli query -f serials.csv
+glcli query serial --file serials.csv
+```
+
+The file reader accepts a `serial`, `serialNumber`, `serial_number`, `serial number`,
+or `sn` header. MAC file input is not supported yet.
+
+Use `--verbose` for diagnostic logging:
+
+```sh
+glcli --verbose query serial PHWLKAS02
+```
+
+Exit codes are `0` for a complete result, `1` when no devices are returned, and
+`2` when at least one requested identifier is missing.
+
+Run the offline tests with:
+
+```sh
+uv run pytest
 ```

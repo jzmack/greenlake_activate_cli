@@ -1,15 +1,17 @@
-import argparse
-import sys
 import logging
 from pathlib import Path
 
+import typer
 from glcli.activate_login import create_activate_session, load_credentials
 from glcli.data_parsing import parse_inventory_response
-from glcli.query_inventory import query_by_serial, get_serials
+from glcli.query_inventory import query_inventory, read_serials_from_file
 from glcli.display_data import display_inventory_sn
 from rich.logging import RichHandler
 
 logger = logging.getLogger(__name__)
+app = typer.Typer(help="Interact with HPE GreenLake Activate via CLI.")
+query_app = typer.Typer(help="Query Activate inventory.")
+app.add_typer(query_app, name="query")
 
 def setup_logging(verbose: bool):
     logging.basicConfig(
@@ -19,43 +21,25 @@ def setup_logging(verbose: bool):
     )
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
-def parse_cli_args(argv=None):
-    """Used to create arguments that can be passed during exectuion."""
+def _query(identifier_type: str, identifiers: list[str], file: Path | None = None) -> None:
+    if file is not None:
+        if identifier_type != "serial":
+            raise typer.BadParameter("--file is currently supported only for serial queries")
+        identifiers = read_serials_from_file(file)
 
-    parser = argparse.ArgumentParser(
-        prog="glcli",
-        description="Interact with HPE GreenLake Activate via CLI."
-    )
+    identifiers = [identifier.strip().upper() for identifier in identifiers if identifier.strip()]
+    if not identifiers:
+        raise typer.BadParameter("At least one identifier is required")
 
-    parser.add_argument(
-        "-v", "--verbose",
-        action="store_true",
-        help="Enable debugging output to console."
-    )
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    identifiers = list(dict.fromkeys(identifiers))
+    credential = load_credentials()
+    try:
+        session = create_activate_session(credential)
+        query_result, missing = query_inventory(session, identifier_type, identifiers)
+    finally:
+        if "session" in locals():
+            session.close()
 
-    # glcli query
-    p_query = subparsers.add_parser("query", help="Query Inventory.")
-    group = p_query.add_mutually_exclusive_group(required=True)
-    group.add_argument(
-        "serials",
-        nargs="*",
-        metavar="SERIAL",
-        help="Serial numbers (space separated) or 'all' to query everything."
-    )
-    group.add_argument(
-        "-f", "--file",
-        type=Path,
-        metavar="PATH",
-        help="CSV or text file containing serial numbers."
-    )
-    p_query.set_defaults(func=cmd_query)
-
-    return parser.parse_args(argv)
-
-def cmd_query(session, args) -> int:
-    serials = get_serials(args)
-    query_result, missing = query_by_serial(session, serials)
     extracted_data = parse_inventory_response(query_result)
 
     if missing:
@@ -64,18 +48,36 @@ def cmd_query(session, args) -> int:
     display_inventory_sn(extracted_data)
 
     if not extracted_data:
-        return 1
-    return 2 if missing else 0
+        raise typer.Exit(code=1)
+    if missing:
+        raise typer.Exit(code=2)
 
-def main(argv=None):
-    args = parse_cli_args(argv)
 
-    setup_logging(args.verbose)
-    logger.debug("Parsed arguments: %s", args)
+@app.callback()
+def main_callback(
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debugging output to console."),
+) -> None:
+    setup_logging(verbose)
 
-    token = load_credentials()
-    session = create_activate_session(token)
-    return args.func(session, args)
+
+@query_app.command("serial")
+def query_serial(
+    serials: list[str] = typer.Argument(..., metavar="SERIAL"),
+    file: Path | None = typer.Option(None, "--file", "-f", help="CSV or text file containing serial numbers."),
+) -> None:
+    _query("serial", serials, file)
+
+
+@query_app.command("mac")
+def query_mac(
+    macs: list[str] = typer.Argument(..., metavar="MAC"),
+) -> None:
+    _query("mac", macs)
+
+
+def main() -> None:
+    app()
+
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
