@@ -19,10 +19,20 @@ The CLI uses the following Python packages, which are installed automatically:
 
 ## Installation
 
-Installing with `uv` is my recommendation.
+I recommend installing this package with `uv`. [Install uv](https://docs.astral.sh/uv/getting-started/installation/) if it is not already available.
 
-[Install uv](https://docs.astral.sh/uv/getting-started/installation/) if it is not
-already available.
+Installing uv on Linux/Mac:
+```sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Installing uv on Windows:
+
+```ps
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+---
 
 To install the latest published package as a global command:
 
@@ -30,17 +40,17 @@ To install the latest published package as a global command:
 uv tool install greenlake-activate-cli
 ```
 
+Verify the installation:
+
+```sh
+glcli --version
+```
+
 This installs the CLI in an isolated environment and makes `glcli` available from
 any directory. If uv reports that its tool directory is not on your `PATH`, run:
 
 ```sh
 uv tool update-shell
-```
-
-Restart your shell, then verify the installation:
-
-```sh
-glcli --version
 ```
 
 To upgrade or remove the installed CLI:
@@ -145,9 +155,3 @@ glcli --verbose query serial PHWLKAS02
 
 Exit codes are `0` for a complete result, `1` when no devices are returned, and
 `2` when at least one requested identifier is missing.
-
-Run the offline tests with:
-
-```sh
-uv run pytest
-```
