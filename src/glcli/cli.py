@@ -7,6 +7,7 @@ from glcli.activate_login import create_activate_session, load_credentials, save
 from glcli.data_parsing import parse_inventory_response
 from glcli.query_inventory import query_inventory, read_identifiers_from_file
 from glcli.query_folder import resolve_folder_ids
+from glcli.move_device import move_device, resolve_move_macs, MAC_PATTERN
 from glcli.display_data import display_inventory_sn
 from rich.logging import RichHandler
 
@@ -98,6 +99,33 @@ def _query_folder(values: list[str]) -> None:
         raise typer.Exit(code=1)
 
 
+def _move(identifier_type: str, identifiers: list[str], destination: str) -> None:
+    identifiers = [identifier.strip().upper() for identifier in identifiers if identifier.strip()]
+    destination = destination.strip()
+    if not identifiers:
+        raise typer.BadParameter("At least one identifier is required")
+    if not destination:
+        raise typer.BadParameter("A destination folder is required")
+
+    identifiers = list(dict.fromkeys(identifiers))
+    credential = _load_credential()
+    session = None
+    try:
+        session = create_activate_session(credential)
+        mac_addresses, unresolved = resolve_move_macs(session, identifier_type, identifiers)
+        if unresolved:
+            typer.echo(f"Not found or missing MAC: {', '.join(unresolved)}", err=True)
+        if not mac_addresses:
+            raise typer.Exit(code=1)
+        move_device(session, mac_addresses, destination)
+    finally:
+        if session is not None:
+            session.close()
+
+    if unresolved:
+        raise typer.Exit(code=2)
+
+
 @app.callback()
 def main_callback(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debugging output to console."),
@@ -115,6 +143,41 @@ def configure() -> None:
     except (OSError, ValueError) as exc:
         raise typer.BadParameter(str(exc)) from exc
     typer.echo(f"Credential saved to {config_path}")
+
+
+@app.command("move")
+def move(
+    arguments: list[str] = typer.Argument(..., metavar="MOVE_ARGUMENT"),
+) -> None:
+    """Move a device or a file of devices to an Activate folder.
+
+    Forms:
+        move IDENTIFIER DESTINATION
+        move serials FILE DESTINATION
+        move macs FILE DESTINATION
+
+    examples:
+        move SERIALNO12 Site_A
+        move AA:BB:CC:DD:EE:FF Site_B
+        move serials ./serials.csv Site_C
+        move macs ./macs.csv Site_D
+
+    """
+    if arguments[0] in {"serials", "macs"}:
+        if len(arguments) != 3:
+            raise typer.BadParameter("Expected: move serials|macs FILENAME DESTINATION")
+        identifier_type = "serial" if arguments[0] == "serials" else "mac"
+        try:
+            identifiers = read_identifiers_from_file(Path(arguments[1]), identifier_type)
+        except (OSError, ValueError) as exc:
+            raise typer.BadParameter(str(exc)) from exc
+        _move(identifier_type, identifiers, arguments[2])
+        return
+
+    if len(arguments) != 2:
+        raise typer.BadParameter("Expected: move IDENTIFIER DESTINATION")
+    identifier_type = "mac" if MAC_PATTERN.fullmatch(arguments[0].strip()) else "serial"
+    _move(identifier_type, [arguments[0]], arguments[1])
 
 
 @query_app.command("serial")

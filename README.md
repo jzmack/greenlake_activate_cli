@@ -10,7 +10,7 @@ The purpose of this is to help manage devices in HPE GreenLake Activate with an 
     - serial number
     - folder name
     - folder id
-- Move devices between folders (WIP)
+- Move devices between folders
 - Generate CLI commands for allowlist entries (WIP)
 
 ## Requirements
@@ -131,15 +131,26 @@ glcli query folder 5297450
 glcli query folder SiteA-South
 ```
 
+Move a device by serial number or MAC address:
+
+```sh
+glcli move PHWLKAS02 SiteA-South
+glcli move aa:bb:cc:00:11:22 5297450
+```
+
+Move multiple devices from a file:
+
+```sh
+glcli move serials serials.csv SiteA-South
+glcli move macs mac_addresses.csv 5297450
+```
+
 Serial numbers and MAC addresses can also be loaded from CSV or newline-delimited files:
 
 ```sh
 glcli query serial --file serials.csv
 glcli query mac --file mac_addresses.csv
 ```
-
-The file reader uses the first column. Serial files may use a `serial`, `serialNumber`,
-`serial_number`, `serial number`, or `sn` header.
 
 Use `--verbose` for diagnostic logging:
 
@@ -163,3 +174,7 @@ To run the tests;
 ```sh
 uv run pytest
 ```
+
+# References
+
+- [GreenLake Activate API Documentation](https://support.hpe.com/hpesc/public/docDisplay?docId=a00120791en_us&page=GUID-264278DA-9B2B-4E1E-9DED-596562E2CEF4.html)
