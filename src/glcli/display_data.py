@@ -1,5 +1,4 @@
-from rich import print
-from rich.markup import escape
+from rich import box
 from rich.console import Console
 from rich.table import Table
 
@@ -14,7 +13,8 @@ def display_inventory_sn(extracted_data:list[dict]):
         "Folder",
         "Folder ID",
         title="Query Results",
-        header_style="bright_green",
+        header_style="wheat1",
+        box=box.ROUNDED
     )
 
     for device in extracted_data:
