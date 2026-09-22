@@ -1,21 +1,23 @@
 # GreenLake Activate CLI
 
-The purpose of this is to help manage devices in HPE GreenLake Activate with an easy to use CLI interface.
+The purpose of this is to help manage devices in HPE GreenLake Activate with an easy to use CLI interface. This tool uses the available API calls that HPE GreenLake Activate exposes for manging devices
 
-# Setup
+## Features
+
+- Query Activate inventory by:
+    - device name
+    - mac address
+    - serial number
+    - folder name
+    - folder id
+- Move devices between folders (WIP)
+- Generate CLI commands for allowlist entries (WIP)
 
 ## Requirements
 
-- Python 3.14 or newer
+- Python 3.12 or newer
 - An HPE GreenLake Activate API credential
 - Network access to `activate.arubanetworks.com`
-
-The CLI uses the following Python packages, which are installed automatically:
-
-- Typer
-- Requests
-- Rich
-- Python Dotenv
 
 ## Installation
 
@@ -44,13 +46,6 @@ Verify the installation:
 
 ```sh
 glcli --version
-```
-
-This installs the CLI in an isolated environment and makes `glcli` available from
-any directory. If uv reports that its tool directory is not on your `PATH`, run:
-
-```sh
-uv tool update-shell
 ```
 
 To upgrade or remove the installed CLI:
@@ -154,3 +149,17 @@ glcli --verbose query serial PHWLKAS02
 
 Exit codes are `0` for a complete result, `1` when no devices are returned, and
 `2` when at least one requested identifier is missing.
+
+## Troubleshooting
+
+The installation with uv installs this package in an isolated environment and makes `glcli` available to run from any directory. If uv reports that its tool directory is not on your `PATH`, run:
+
+```sh
+uv tool update-shell
+```
+
+To run the tests;
+
+```sh
+uv run pytest
+```
