@@ -8,13 +8,17 @@ from glcli.data_parsing import parse_inventory_response
 from glcli.query_inventory import query_inventory, read_identifiers_from_file
 from glcli.query_folder import resolve_folder_ids
 from glcli.move_device import move_device, resolve_move_macs, MAC_PATTERN
+from glcli.create_folder import create_folder
 from glcli.display_data import display_inventory_sn
 from rich.logging import RichHandler
+from rich import print
 
 logger = logging.getLogger(__name__)
 app = typer.Typer(help="Interact with HPE GreenLake Activate via CLI.")
 query_app = typer.Typer(help="Query Activate inventory.")
 app.add_typer(query_app, name="query")
+create_app = typer.Typer(help="Create resources in Activate.")
+app.add_typer(create_app, name="create")
 
 def setup_logging(verbose: bool):
     logging.basicConfig(
@@ -143,6 +147,30 @@ def configure() -> None:
     except (OSError, ValueError) as exc:
         raise typer.BadParameter(str(exc)) from exc
     typer.echo(f"Credential saved to {config_path}")
+
+
+@create_app.command("folder")
+def create_folder_command(
+    folder_name: str = typer.Argument(..., metavar="FOLDER_NAME"),
+) -> None:
+    """Create a folder in Activate."""
+    folder_name = folder_name.strip()
+    if not folder_name:
+        raise typer.BadParameter("A folder name is required")
+
+    credential = _load_credential()
+    session = None
+    try:
+        session = create_activate_session(credential)
+        try:
+            created_folder = create_folder(session, folder_name)
+        except (RuntimeError, ValueError) as exc:
+            raise typer.BadParameter(str(exc)) from exc
+    finally:
+        if session is not None:
+            session.close()
+
+    print(f"Created folder '{created_folder.name}' with ID {created_folder.folder_id}")
 
 
 @app.command("move")

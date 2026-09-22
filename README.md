@@ -11,6 +11,8 @@ The purpose of this is to help manage devices in HPE GreenLake Activate with an 
     - folder name
     - folder id
 - Move devices between folders
+- Create folders in Activate
+- Create provisioning rules for folders (WIP)
 - Generate CLI commands for allowlist entries (WIP)
 
 ## Requirements
@@ -143,6 +145,12 @@ Move multiple devices from a file:
 ```sh
 glcli move serials serials.csv SiteA-South
 glcli move macs mac_addresses.csv 5297450
+```
+
+Create a new folder in Activate:
+
+```sh
+glcli create folder Jake_test2
 ```
 
 Serial numbers and MAC addresses can also be loaded from CSV or newline-delimited files:
