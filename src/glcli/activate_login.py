@@ -75,7 +75,7 @@ def create_activate_session(credential_1:str) -> requests.Session:
         logger.error("Login failed: %s", response.text)
         raise RuntimeError("Activate login failed")
 
-    logger.info("Authenticated to Activate")
+    logger.debug("Authenticated to Activate")
     logger.debug("Full login response: %s", response.text)
 
     return session

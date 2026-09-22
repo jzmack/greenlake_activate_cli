@@ -146,7 +146,7 @@ def configure() -> None:
         config_path = save_user_credential(credential)
     except (OSError, ValueError) as exc:
         raise typer.BadParameter(str(exc)) from exc
-    typer.echo(f"Credential saved to {config_path}")
+    print(f":heavy_check_mark:  Credential saved to {config_path}")
 
 
 @create_app.command("folder")

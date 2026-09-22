@@ -53,7 +53,7 @@ def query_inventory(session: requests.Session, identifier_type: str, identifiers
     if missing:
         logger.warning("Not found in Activate inventory: %s", ", ".join(missing))
 
-    logger.info("Query succeeded!")
+    logger.debug("Query succeeded!")
     logger.debug("Full query response:\n%s", response.text)
 
     return response.text, missing

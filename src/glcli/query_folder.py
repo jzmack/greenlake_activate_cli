@@ -35,7 +35,7 @@ def list_folders(session: requests.Session) -> list[Folder]:
             continue
         folders.append(Folder(str(item["id"]), str(item["folderName"])))
 
-    logger.info("Read %d folder(s) from Activate", len(folders))
+    logger.debug("Read %d folder(s) from Activate", len(folders))
     return folders
 
 
