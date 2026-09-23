@@ -171,13 +171,15 @@ Exit codes are `0` for a complete result, `1` when no devices are returned, and
 
 ## Troubleshooting
 
+When in doubt, restart your shell.
+
 The installation with uv installs this package in an isolated environment and makes `glcli` available to run from any directory. If uv reports that its tool directory is not on your `PATH`, run:
 
 ```sh
 uv tool update-shell
 ```
 
-To run the tests;
+To run the tests for development:
 
 ```sh
 uv run pytest
