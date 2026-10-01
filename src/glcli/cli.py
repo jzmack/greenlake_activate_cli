@@ -16,7 +16,7 @@ from rich import print
 
 logger = logging.getLogger(__name__)
 app = typer.Typer(help="Interact with HPE GreenLake Activate via CLI.")
-query_app = typer.Typer(help="Query Activate inventory.")
+query_app = typer.Typer(help="Query Activate inventory and provisioning rules.")
 app.add_typer(query_app, name="query")
 rule_app = typer.Typer(help="Query provisioning rules for one folder.")
 query_app.add_typer(rule_app, name="rule")
@@ -244,6 +244,7 @@ def query_serial(
     serials: list[str] | None = typer.Argument(None, metavar="SERIAL"),
     file: Path | None = typer.Option(None, "--file", "-f", help="CSV or text file containing serial numbers."),
 ) -> None:
+    """Query inventory by serial number(s)."""
     _query("serial", serials or [], file)
 
 
@@ -252,6 +253,7 @@ def query_mac(
     macs: list[str] | None = typer.Argument(None, metavar="MAC"),
     file: Path | None = typer.Option(None, "--file", "-f", help="CSV or text file containing MAC addresses."),
 ) -> None:
+    """Query inventory by MAC address(es)."""
     _query("mac", macs or [], file)
 
 
@@ -259,6 +261,7 @@ def query_mac(
 def query_folder(
     folders: list[str] = typer.Argument(..., metavar="FOLDER_ID_OR_NAME"),
 ) -> None:
+    """Query inventory by folder ID or folder name."""
     _query_folder(folders)
 
 

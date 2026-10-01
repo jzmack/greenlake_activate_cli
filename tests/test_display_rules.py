@@ -33,4 +33,4 @@ def test_display_rules_displays_empty_state():
 
     display_rules([], Console(file=output, width=120))
 
-    assert "0 Rule(s)" in output.getvalue()
+    assert "Provisioning Rule(s)" in output.getvalue()

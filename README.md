@@ -10,6 +10,7 @@ The purpose of this is to help manage devices in HPE GreenLake Activate with an 
     - serial number
     - folder name
     - folder id
+    - provisioning rules
 - Move devices between folders
 - Create folders in Activate
 - Create provisioning rules for folders (WIP)

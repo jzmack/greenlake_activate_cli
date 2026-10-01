@@ -43,7 +43,7 @@ def display_rules(rules: list[dict], console: Console | None = None) -> None:
         "Persist Controller IP",
         "Controller",
         "AP Group",
-        title=f"Provisioning Rule(s)",
+        title="Provisioning Rule(s)",
         header_style="wheat1",
         box=box.ROUNDED,
     )
