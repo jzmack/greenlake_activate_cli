@@ -161,6 +161,18 @@ Create a new folder in Activate:
 glcli create folder Jake_test2
 ```
 
+Create a provisioning rule for a folder by ID or name:
+
+```sh
+glcli create rule folder-id 63061537
+glcli create rule folder-name Northwest
+```
+
+The command prompts for the rule name, provision type (`cap` or `rap`), controller
+IP, and AP group. These choices map to Activate values `iap_to_cap` and `iap_to_rap`.
+It resolves folder names, displays the rule details for review, and asks for
+confirmation before sending the request. On success, it prints the created rule ID.
+
 Serial numbers and MAC addresses can also be loaded from CSV or newline-delimited files:
 
 ```sh

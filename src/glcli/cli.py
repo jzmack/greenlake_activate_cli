@@ -10,6 +10,7 @@ from glcli.query_folder import resolve_folder_ids
 from glcli.query_rule import query_rule
 from glcli.move_device import move_device, resolve_move_macs, MAC_PATTERN
 from glcli.create_folder import create_folder
+from glcli.create_rule import create_provision_rule
 from glcli.display_data import display_inventory_sn, display_rules
 from rich.logging import RichHandler
 from rich import print
@@ -22,6 +23,8 @@ rule_app = typer.Typer(help="Query provisioning rules for one folder.")
 query_app.add_typer(rule_app, name="rule")
 create_app = typer.Typer(help="Create resources in Activate.")
 app.add_typer(create_app, name="create")
+create_rule_app = typer.Typer(help="Create a provisioning rule for one folder.")
+create_app.add_typer(create_rule_app, name="rule")
 
 def setup_logging(verbose: bool):
     logging.basicConfig(
@@ -202,6 +205,85 @@ def create_folder_command(
             session.close()
 
     print(f"Created folder '{created_folder.name}' with ID {created_folder.folder_id}")
+
+
+def _prompt_provision_type() -> str:
+    while True:
+        choice = typer.prompt("Provision type (cap/rap)").strip().casefold()
+        if choice == "cap":
+            return "iap_to_cap"
+        if choice == "rap":
+            return "iap_to_rap"
+        typer.echo("Choose 'cap' or 'rap'.", err=True)
+
+
+def _create_rule(folder_value: str, resolve_name: bool) -> None:
+    rule_name = typer.prompt("Rule name").strip()
+    provision_type = _prompt_provision_type()
+    controller_ip = typer.prompt("Controller IP").strip()
+    ap_group = typer.prompt("AP group").strip()
+    if not all((rule_name, controller_ip, ap_group)):
+        raise typer.BadParameter("Rule name, controller IP, and AP group are required")
+
+    folder_value = folder_value.strip()
+    if not folder_value:
+        raise typer.BadParameter("A folder ID or name is required")
+
+    credential = _load_credential()
+    session = None
+    try:
+        session = create_activate_session(credential)
+        if resolve_name:
+            try:
+                folder_ids = resolve_folder_ids(session, [folder_value])
+            except ValueError as exc:
+                raise typer.BadParameter(str(exc)) from exc
+            folder_id = folder_ids[0]
+        else:
+            folder_id = folder_value
+
+        typer.echo("\nProvisioning rule to create:")
+        typer.echo(f"  Rule name: {rule_name}")
+        typer.echo(f"  Folder ID: {folder_id}")
+        typer.echo(f"  Provision type: {provision_type}")
+        typer.echo(f"  Controller: {controller_ip}")
+        typer.echo(f"  AP group: {ap_group}")
+        if not typer.confirm("Create this provisioning rule?", default=False, abort=False):
+            typer.echo("Rule creation cancelled.")
+            return
+
+        created_rule = create_provision_rule(
+            session,
+            rule_name,
+            folder_id,
+            provision_type,
+            controller_ip,
+            ap_group,
+        )
+    except RuntimeError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        if session is not None:
+            session.close()
+
+    print(f"Created provisioning rule '{created_rule.name}' with ID {created_rule.rule_id}")
+
+
+@create_rule_app.command("folder-id")
+def create_rule_by_folder_id(
+    folder_id: str = typer.Argument(..., metavar="FOLDER_ID"),
+) -> None:
+    """Create a provisioning rule for a folder ID."""
+    _create_rule(folder_id, resolve_name=False)
+
+
+@create_rule_app.command("folder-name")
+def create_rule_by_folder_name(
+    folder_name: str = typer.Argument(..., metavar="FOLDER_NAME"),
+) -> None:
+    """Create a provisioning rule for a folder name."""
+    _create_rule(folder_name, resolve_name=True)
 
 
 @app.command("move")
