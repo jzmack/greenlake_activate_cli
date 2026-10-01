@@ -7,9 +7,10 @@ from glcli.activate_login import create_activate_session, load_credentials, save
 from glcli.data_parsing import parse_inventory_response
 from glcli.query_inventory import query_inventory, read_identifiers_from_file
 from glcli.query_folder import resolve_folder_ids
+from glcli.query_rule import query_rule
 from glcli.move_device import move_device, resolve_move_macs, MAC_PATTERN
 from glcli.create_folder import create_folder
-from glcli.display_data import display_inventory_sn
+from glcli.display_data import display_inventory_sn, display_rules
 from rich.logging import RichHandler
 from rich import print
 
@@ -17,6 +18,8 @@ logger = logging.getLogger(__name__)
 app = typer.Typer(help="Interact with HPE GreenLake Activate via CLI.")
 query_app = typer.Typer(help="Query Activate inventory.")
 app.add_typer(query_app, name="query")
+rule_app = typer.Typer(help="Query provisioning rules for one folder.")
+query_app.add_typer(rule_app, name="rule")
 create_app = typer.Typer(help="Create resources in Activate.")
 app.add_typer(create_app, name="create")
 
@@ -101,6 +104,34 @@ def _query_folder(values: list[str]) -> None:
 
     if not extracted_data:
         raise typer.Exit(code=1)
+
+
+def _query_rules(folder_value: str, resolve_name: bool) -> None:
+    folder_value = folder_value.strip()
+    if not folder_value:
+        raise typer.BadParameter("A folder ID or name is required")
+
+    credential = _load_credential()
+    session = None
+    try:
+        session = create_activate_session(credential)
+        if resolve_name:
+            try:
+                folder_ids = resolve_folder_ids(session, [folder_value])
+            except ValueError as exc:
+                raise typer.BadParameter(str(exc)) from exc
+            folder_id = folder_ids[0]
+        else:
+            folder_id = folder_value
+        rules = query_rule(session, folder_id)
+    except RuntimeError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        if session is not None:
+            session.close()
+
+    display_rules(rules)
 
 
 def _move(identifier_type: str, identifiers: list[str], destination: str) -> None:
@@ -229,6 +260,22 @@ def query_folder(
     folders: list[str] = typer.Argument(..., metavar="FOLDER_ID_OR_NAME"),
 ) -> None:
     _query_folder(folders)
+
+
+@rule_app.command("folder-id")
+def query_rule_by_folder_id(
+    folder_id: str = typer.Argument(..., metavar="FOLDER_ID"),
+) -> None:
+    """Query provisioning rules by folder ID."""
+    _query_rules(folder_id, resolve_name=False)
+
+
+@rule_app.command("folder-name")
+def query_rule_by_folder_name(
+    folder_name: str = typer.Argument(..., metavar="FOLDER_NAME"),
+) -> None:
+    """Query provisioning rules by folder name."""
+    _query_rules(folder_name, resolve_name=True)
 
 
 def main() -> None:

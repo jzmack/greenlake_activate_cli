@@ -30,7 +30,7 @@ def query_inventory(session: requests.Session, identifier_type: str, identifiers
 
     if response.status_code != 200:
         logger.error("Query failure code: %s", response.status_code)
-        raise RuntimeError("Query failed.")
+        raise RuntimeError("Inventory query failed.")
 
     try:
         json_response = json.loads(response.text)

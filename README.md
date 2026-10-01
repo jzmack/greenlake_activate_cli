@@ -133,6 +133,13 @@ glcli query folder 5297450
 glcli query folder SiteA-South
 ```
 
+Query provisioning rules for one folder by ID or name:
+
+```sh
+glcli query rule folder-id 63111131
+glcli query rule folder-name Northwest
+```
+
 Move a device by serial number or MAC address:
 
 ```sh
