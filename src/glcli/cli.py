@@ -262,6 +262,7 @@ def _create_rule(folder_value: str, resolve_name: bool) -> None:
         )
     except RuntimeError as exc:
         typer.echo(f"Error: {exc}", err=True)
+        typer.echo(f"Does a provisioning rule already exist?")
         raise typer.Exit(code=1) from exc
     finally:
         if session is not None:
