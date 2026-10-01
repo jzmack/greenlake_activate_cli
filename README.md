@@ -13,7 +13,7 @@ The purpose of this is to help manage devices in HPE GreenLake Activate with an 
     - provisioning rules
 - Move devices between folders
 - Create folders in Activate
-- Create provisioning rules for folders (WIP)
+- Create provisioning rules for folders
 - Generate CLI commands for allowlist entries (WIP)
 
 ## Requirements
@@ -168,10 +168,8 @@ glcli create rule folder-id 63061537
 glcli create rule folder-name Northwest
 ```
 
-The command prompts for the rule name, provision type (`cap` or `rap`), controller
-IP, and AP group. These choices map to Activate values `iap_to_cap` and `iap_to_rap`.
-It resolves folder names, displays the rule details for review, and asks for
-confirmation before sending the request. On success, it prints the created rule ID.
+The `create rule` command is strictly for creating provisioning rules. The command prompts for the rule name, provision type (`cap` or `rap`), controller
+IP, and AP group. Perhaps in the future, I'll add the ability to create notification rules.
 
 Serial numbers and MAC addresses can also be loaded from CSV or newline-delimited files:
 
