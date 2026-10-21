@@ -171,3 +171,169 @@ def test_query_reports_missing_credentials(monkeypatch):
 
     assert result.exit_code != 0
     assert "CREDENTIAL_1 is not configured" in result.stderr
+
+
+def test_generate_rap_allowlist_from_file_confirms_and_prints_commands(tmp_path):
+    runner = CliRunner()
+    file_path = tmp_path / "allowlist.csv"
+    file_path.write_text(
+        "mac_address,ap_group,serial,description\n"
+        "aa:bb:cc:00:11:22,remote,SN1,North site\n"
+    )
+
+    result = runner.invoke(
+        cli.app,
+        ["generate-allowlist", "rap", "file", str(file_path)],
+        input="y\n",
+    )
+
+    assert result.exit_code == 0
+    assert "allowlist-db rap add mac-address AA:BB:CC:00:11:22 ap-name SN1" in result.stdout
+    assert 'description "North site"' in result.stdout
+
+
+def test_generate_allowlist_file_decline_does_not_print_commands(tmp_path):
+    runner = CliRunner()
+    file_path = tmp_path / "allowlist.csv"
+    file_path.write_text("mac_address,ap_group\naa:bb:cc:00:11:22,campus\n")
+
+    result = runner.invoke(
+        cli.app,
+        ["generate-allowlist", "cap", "file", str(file_path)],
+        input="n\n",
+    )
+
+    assert result.exit_code == 0
+    assert "generation cancelled" in result.stdout
+    assert "allowlist-db cpsec add" not in result.stdout
+
+
+def test_generate_allowlist_text_option_writes_commands_to_file(tmp_path, monkeypatch):
+    runner = CliRunner()
+    file_path = tmp_path / "allowlist.csv"
+    file_path.write_text("mac_address,ap_group\naa:bb:cc:00:11:22,campus\n")
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(
+        cli.app,
+        ["generate-allowlist", "cap", "file", str(file_path), "--text"],
+        input="y\n",
+    )
+
+    assert result.exit_code == 0
+    assert (tmp_path / "allowlist_commands.txt").read_text() == (
+        "allowlist-db cpsec add mac-address AA:BB:CC:00:11:22 ap-group campus\n"
+    )
+    assert "Wrote 1 command(s) to allowlist_commands.txt" in result.stdout
+    assert "Generated allowlist commands:" not in result.stdout
+
+
+def test_generate_allowlist_text_decline_preserves_existing_file(tmp_path, monkeypatch):
+    runner = CliRunner()
+    file_path = tmp_path / "allowlist.csv"
+    file_path.write_text("mac_address,ap_group\naa:bb:cc:00:11:22,campus\n")
+    output_path = tmp_path / "allowlist_commands.txt"
+    output_path.write_text("keep this content\n")
+    monkeypatch.chdir(tmp_path)
+
+    result = runner.invoke(
+        cli.app,
+        ["generate-allowlist", "cap", "file", str(file_path), "--text"],
+        input="n\n",
+    )
+
+    assert result.exit_code == 0
+    assert "overwrite existing file" in result.stdout
+    assert output_path.read_text() == "keep this content\n"
+
+
+def test_generate_cap_allowlist_from_folder_prompts_when_group_is_missing(monkeypatch):
+    runner = CliRunner()
+    session = FakeSession()
+
+    monkeypatch.setattr(cli, "load_credentials", lambda: "token")
+    monkeypatch.setattr(cli, "create_activate_session", lambda credential: session)
+    monkeypatch.setattr(cli, "resolve_folder_ids", lambda active_session, values: ["123"])
+    monkeypatch.setattr(
+        cli,
+        "query_inventory",
+        lambda active_session, identifier_type, identifiers: (
+            '{"devices": [{"serialNumber": "SN1", "mac": "AA:BB:CC:00:11:22"}]}',
+            [],
+        ),
+    )
+    monkeypatch.setattr(cli, "query_rule", lambda active_session, folder_id: [])
+
+    result = runner.invoke(
+        cli.app,
+        ["generate-allowlist", "cap", "folder", "Site A"],
+        input="campus\ny\n",
+    )
+
+    assert result.exit_code == 0
+    assert "No AP group is defined" in result.stdout
+    assert "allowlist-db cpsec add mac-address AA:BB:CC:00:11:22 ap-group campus" in result.stdout
+    assert session.closed is True
+
+
+def test_generate_rap_allowlist_from_folder_uses_rule_group_and_serial(monkeypatch):
+    runner = CliRunner()
+    session = FakeSession()
+
+    monkeypatch.setattr(cli, "load_credentials", lambda: "token")
+    monkeypatch.setattr(cli, "create_activate_session", lambda credential: session)
+    monkeypatch.setattr(cli, "resolve_folder_ids", lambda active_session, values: ["123"])
+    monkeypatch.setattr(
+        cli,
+        "query_inventory",
+        lambda active_session, identifier_type, identifiers: (
+            '{"devices": [{"serialNumber": "SN1", "mac": "AA:BB:CC:00:11:22"}]}',
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        cli,
+        "query_rule",
+        lambda active_session, folder_id: [{"apGroup": "remote"}],
+    )
+
+    result = runner.invoke(
+        cli.app,
+        ["generate-allowlist", "rap", "folder", "Site A"],
+        input="y\n",
+    )
+
+    assert result.exit_code == 0
+    assert "allowlist-db rap add mac-address AA:BB:CC:00:11:22 ap-name SN1 ap-group remote" in result.stdout
+    assert session.closed is True
+
+
+def test_generate_allowlist_folder_rejects_multiple_ap_groups(monkeypatch):
+    runner = CliRunner()
+    session = FakeSession()
+
+    monkeypatch.setattr(cli, "load_credentials", lambda: "token")
+    monkeypatch.setattr(cli, "create_activate_session", lambda credential: session)
+    monkeypatch.setattr(cli, "resolve_folder_ids", lambda active_session, values: ["123"])
+    monkeypatch.setattr(
+        cli,
+        "query_inventory",
+        lambda active_session, identifier_type, identifiers: (
+            '{"devices": [{"serialNumber": "SN1", "mac": "AA:BB:CC:00:11:22"}]}',
+            [],
+        ),
+    )
+    monkeypatch.setattr(
+        cli,
+        "query_rule",
+        lambda active_session, folder_id: [{"apGroup": "campus"}, {"apGroup": "remote"}],
+    )
+
+    result = runner.invoke(
+        cli.app,
+        ["generate-allowlist", "cap", "folder", "Site A"],
+    )
+
+    assert result.exit_code != 0
+    assert "multiple AP groups" in result.stderr
+    assert session.closed is True

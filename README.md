@@ -14,7 +14,7 @@ The purpose of this is to help manage devices in HPE GreenLake Activate with an 
 - Move devices between folders
 - Create folders in Activate
 - Create provisioning rules for folders
-- Generate CLI commands for allowlist entries (WIP)
+- Generate CLI commands for CAP and RAP allowlist entries
 
 ## Requirements
 
@@ -166,6 +166,35 @@ Create a provisioning rule for a folder by ID or name:
 ```sh
 glcli create rule folder-id 63061537
 glcli create rule folder-name Northwest
+```
+
+Generate allowlist commands for devices in a folder. The `--text` option allows you to generate a text file with the commands if you prefer.
+
+Example:
+
+```sh
+glcli generate-allowlist cap folder SiteA-South
+glcli generate-allowlist rap folder SiteA-South --description "Remote site"
+glcli generate-allowlist cap folder SiteA-South --text
+```
+
+
+Generate allowlist commands from a CSV file:
+
+```sh
+glcli generate-allowlist cap file allowlist.csv
+glcli generate-allowlist rap file allowlist.csv
+glcli generate-allowlist rap file allowlist.csv --text
+```
+
+
+The CSV must have `mac_address` and `ap_group` headers. RAP files must also have
+a `serial` header. The optional `description` column applies to that row. For
+example:
+
+```csv
+mac_address,ap_group,serial,description
+AA:BB:CC:00:11:22,remote,SN123,North site
 ```
 
 The `create rule` command is strictly for creating provisioning rules. The command prompts for the rule name, provision type (`cap` or `rap`), controller

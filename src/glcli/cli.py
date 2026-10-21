@@ -12,6 +12,12 @@ from glcli.move_device import move_device, resolve_move_macs, MAC_PATTERN
 from glcli.create_folder import create_folder
 from glcli.create_rule import create_provision_rule
 from glcli.display_data import display_inventory_sn, display_rules
+from glcli.generate_allowlist import (
+    AllowlistEntry,
+    generate_cpsec_allowlist_command,
+    generate_rap_allowlist_command,
+    read_allowlist_entries_from_file,
+)
 from rich.logging import RichHandler
 from rich import print
 
@@ -25,6 +31,12 @@ create_app = typer.Typer(help="Create resources in Activate.")
 app.add_typer(create_app, name="create")
 create_rule_app = typer.Typer(help="Create a provisioning rule for one folder.")
 create_app.add_typer(create_rule_app, name="rule")
+generate_allowlist_app = typer.Typer(help="Generate allowlist commands from a folder or CSV file.")
+app.add_typer(generate_allowlist_app, name="generate-allowlist")
+cap_allowlist_app = typer.Typer(help="Generate campus AP allowlist commands.")
+generate_allowlist_app.add_typer(cap_allowlist_app, name="cap")
+rap_allowlist_app = typer.Typer(help="Generate remote AP allowlist commands.")
+generate_allowlist_app.add_typer(rap_allowlist_app, name="rap")
 
 def setup_logging(verbose: bool):
     logging.basicConfig(
@@ -164,6 +176,203 @@ def _move(identifier_type: str, identifiers: list[str], destination: str) -> Non
         raise typer.Exit(code=2)
 
 
+def _allowlist_command(entry: AllowlistEntry, provision_type: str) -> str:
+    if provision_type == "cap":
+        return generate_cpsec_allowlist_command(
+            entry.mac_address,
+            entry.ap_group,
+            entry.description,
+        )
+    return generate_rap_allowlist_command(
+        entry.mac_address,
+        entry.ap_group,
+        entry.serial,
+        entry.description,
+    )
+
+
+def _preview_and_confirm_allowlist(
+    entries: list[AllowlistEntry],
+    provision_type: str,
+    text_file: bool,
+) -> None:
+    commands = [_allowlist_command(entry, provision_type) for entry in entries]
+    output_path = Path("allowlist_commands.txt") if text_file else None
+    typer.echo("Allowlist commands to generate:")
+    for entry in entries:
+        details = f"  MAC: {entry.mac_address} | AP group: {entry.ap_group}"
+        if provision_type == "rap":
+            details += f" | AP name: {entry.serial}"
+        if entry.description:
+            details += f" | Description: {entry.description}"
+        typer.echo(details)
+
+    if output_path is None:
+        confirmation = "Generate these allowlist commands?"
+    else:
+        overwrite_note = " (overwrite existing file)" if output_path.exists() else ""
+        confirmation = f"Write commands to {output_path}{overwrite_note}?"
+    if not typer.confirm(confirmation, default=False):
+        typer.echo("Allowlist command generation cancelled.")
+        return
+
+    if output_path is not None:
+        try:
+            output_path.write_text("\n".join(commands) + "\n", encoding="utf-8")
+        except OSError as exc:
+            typer.echo(f"Error writing {output_path}: {exc}", err=True)
+            raise typer.Exit(code=1) from exc
+        typer.echo(f"Wrote {len(commands)} command(s) to {output_path}")
+        return
+
+    typer.echo("Generated allowlist commands:")
+    for command in commands:
+        typer.echo(command)
+
+
+def _generate_allowlist_from_file(path: Path, provision_type: str, text_file: bool) -> None:
+    try:
+        entries = read_allowlist_entries_from_file(path, provision_type)
+    except (OSError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    _preview_and_confirm_allowlist(entries, provision_type, text_file)
+
+
+def _generate_allowlist_from_folder(
+    folder_name: str,
+    provision_type: str,
+    description: str,
+    text_file: bool,
+) -> None:
+    folder_name = folder_name.strip()
+    if not folder_name:
+        raise typer.BadParameter("A folder name is required")
+
+    credential = _load_credential()
+    session = None
+    try:
+        session = create_activate_session(credential)
+        try:
+            folder_ids = resolve_folder_ids(session, [folder_name])
+        except ValueError as exc:
+            raise typer.BadParameter(str(exc)) from exc
+
+        inventory_response, _ = query_inventory(session, "folder", folder_ids)
+        rules = query_rule(session, folder_ids[0])
+    except RuntimeError as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    finally:
+        if session is not None:
+            session.close()
+
+    devices = parse_inventory_response(inventory_response)
+    if not devices:
+        raise typer.BadParameter(f"No devices found in folder '{folder_name}'")
+
+    required_fields = ("mac", "serial") if provision_type == "rap" else ("mac",)
+    entries = []
+    for device in devices:
+        missing = [field for field in required_fields if not device.get(field)]
+        if missing:
+            raise typer.BadParameter(
+                f"A device in folder '{folder_name}' is missing required "
+                f"inventory data: {', '.join(missing)}"
+            )
+        entries.append(
+            AllowlistEntry(
+                mac_address=str(device["mac"]).strip().upper(),
+                ap_group="",
+                serial=str(device.get("serial") or "").strip().upper(),
+                description=description.strip(),
+            )
+        )
+
+    ap_groups = list(
+        dict.fromkeys(
+            str(rule.get("apGroup") or "").strip()
+            for rule in rules
+            if str(rule.get("apGroup") or "").strip()
+        )
+    )
+    if len(ap_groups) > 1:
+        raise typer.BadParameter(
+            f"Folder '{folder_name}' has multiple AP groups defined: {', '.join(ap_groups)}"
+        )
+    if ap_groups:
+        ap_group = ap_groups[0]
+    else:
+        typer.echo(f"No AP group is defined for folder '{folder_name}'.")
+        ap_group = typer.prompt("AP group").strip()
+        if not ap_group:
+            raise typer.BadParameter("An AP group is required")
+
+    entries = [
+        AllowlistEntry(
+            mac_address=entry.mac_address,
+            ap_group=ap_group,
+            serial=entry.serial,
+            description=entry.description,
+        )
+        for entry in entries
+    ]
+    _preview_and_confirm_allowlist(entries, provision_type, text_file)
+
+
+@cap_allowlist_app.command("folder")
+def generate_cap_allowlist_from_folder(
+    folder_name: str = typer.Argument(..., metavar="FOLDER_NAME"),
+    description: str = typer.Option("", "--description", help="Optional command description."),
+    text_file: bool = typer.Option(
+        False,
+        "--text",
+        help="Write commands to allowlist_commands.txt instead of printing them.",
+    ),
+) -> None:
+    """Generate campus AP allowlist commands for devices in a folder."""
+    _generate_allowlist_from_folder(folder_name, "cap", description, text_file)
+
+
+@cap_allowlist_app.command("file")
+def generate_cap_allowlist_from_file(
+    file_path: Path = typer.Argument(..., metavar="FILE_PATH"),
+    text_file: bool = typer.Option(
+        False,
+        "--text",
+        help="Write commands to allowlist_commands.txt instead of printing them.",
+    ),
+) -> None:
+    """Generate campus AP allowlist commands from a CSV file."""
+    _generate_allowlist_from_file(file_path, "cap", text_file)
+
+
+@rap_allowlist_app.command("folder")
+def generate_rap_allowlist_from_folder(
+    folder_name: str = typer.Argument(..., metavar="FOLDER_NAME"),
+    description: str = typer.Option("", "--description", help="Optional command description."),
+    text_file: bool = typer.Option(
+        False,
+        "--text",
+        help="Write commands to allowlist_commands.txt instead of printing them.",
+    ),
+) -> None:
+    """Generate remote AP allowlist commands for devices in a folder."""
+    _generate_allowlist_from_folder(folder_name, "rap", description, text_file)
+
+
+@rap_allowlist_app.command("file")
+def generate_rap_allowlist_from_file(
+    file_path: Path = typer.Argument(..., metavar="FILE_PATH"),
+    text_file: bool = typer.Option(
+        False,
+        "--text",
+        help="Write commands to allowlist_commands.txt instead of printing them.",
+    ),
+) -> None:
+    """Generate remote AP allowlist commands from a CSV file."""
+    _generate_allowlist_from_file(file_path, "rap", text_file)
+
+
 @app.callback()
 def main_callback(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable debugging output to console."),
@@ -262,7 +471,7 @@ def _create_rule(folder_value: str, resolve_name: bool) -> None:
         )
     except RuntimeError as exc:
         typer.echo(f"Error: {exc}", err=True)
-        typer.echo(f"Does a provisioning rule already exist?")
+        typer.echo("Does a provisioning rule already exist?")
         raise typer.Exit(code=1) from exc
     finally:
         if session is not None:

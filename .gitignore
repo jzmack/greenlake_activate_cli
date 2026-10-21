@@ -14,5 +14,6 @@ wheels/
 
 # other
 *.csv
+*.txt
 .python-version
 .pytest_cache/
