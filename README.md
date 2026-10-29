@@ -83,7 +83,7 @@ Run the CLI `glcli configure` command.
 glcli configure
 ```
 
-You will be prompted to enter (paste) in your GreenLake Activate API token. This text is hidden.
+You will be prompted to enter (paste) in your GreenLake Activate API token [Jump to Generate Token section](#generate-greenlake-token). This text is hidden.
 
 This command is essentially doing this:
 
@@ -231,6 +231,18 @@ To run the tests for development:
 ```sh
 uv run pytest
 ```
+
+# Generate Greenlake Token
+
+In order for the CLI to work, you need to use your own API token generated from GreenLake Activate.
+
+From GreenLake, navigate to **IAM and administration** > **Activate**
+
+![GreenLake nav](images/activate_token1.png)
+
+Then **Actions** (the top one) > **Generate token**
+
+![GreenLake nav2](images/activate_token2.png)
 
 # References
 
