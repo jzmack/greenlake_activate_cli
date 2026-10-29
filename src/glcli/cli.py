@@ -199,13 +199,10 @@ def _preview_and_confirm_allowlist(
     commands = [_allowlist_command(entry, provision_type) for entry in entries]
     output_path = Path("allowlist_commands.txt") if text_file else None
     typer.echo("Allowlist commands to generate:")
-    for entry in entries:
-        details = f"  MAC: {entry.mac_address} | AP group: {entry.ap_group}"
-        if provision_type == "rap":
-            details += f" | AP name: {entry.serial}"
-        if entry.description:
-            details += f" | Description: {entry.description}"
-        typer.echo(details)
+    for command in commands[:3]:
+        typer.echo(f"  {command}")
+    if len(commands) > 3:
+        typer.echo(f"  ... showing 3 of {len(commands)} commands")
 
     if output_path is None:
         confirmation = "Generate these allowlist commands?"

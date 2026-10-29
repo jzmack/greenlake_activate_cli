@@ -205,7 +205,54 @@ def test_generate_allowlist_file_decline_does_not_print_commands(tmp_path):
 
     assert result.exit_code == 0
     assert "generation cancelled" in result.stdout
-    assert "allowlist-db cpsec add" not in result.stdout
+    assert "allowlist-db cpsec add" in result.stdout
+    assert "Generated allowlist commands:" not in result.stdout
+
+
+def test_generate_allowlist_preview_shows_only_three_commands(tmp_path):
+    runner = CliRunner()
+    file_path = tmp_path / "allowlist.csv"
+    file_path.write_text(
+        "mac_address,ap_group\n"
+        "aa:bb:cc:00:11:22,campus\n"
+        "aa:bb:cc:00:11:23,campus\n"
+        "aa:bb:cc:00:11:24,campus\n"
+        "aa:bb:cc:00:11:25,campus\n"
+    )
+
+    result = runner.invoke(
+        cli.app,
+        ["generate-allowlist", "cap", "file", str(file_path)],
+        input="n\n",
+    )
+
+    assert result.exit_code == 0
+    assert "allowlist-db cpsec add mac-address AA:BB:CC:00:11:22" in result.stdout
+    assert "allowlist-db cpsec add mac-address AA:BB:CC:00:11:23" in result.stdout
+    assert "allowlist-db cpsec add mac-address AA:BB:CC:00:11:24" in result.stdout
+    assert "allowlist-db cpsec add mac-address AA:BB:CC:00:11:25" not in result.stdout
+    assert "showing 3 of 4 commands" in result.stdout
+
+
+def test_generate_allowlist_preview_shows_all_commands_when_three_or_fewer(tmp_path):
+    runner = CliRunner()
+    file_path = tmp_path / "allowlist.csv"
+    file_path.write_text(
+        "mac_address,ap_group\n"
+        "aa:bb:cc:00:11:22,campus\n"
+        "aa:bb:cc:00:11:23,campus\n"
+        "aa:bb:cc:00:11:24,campus\n"
+    )
+
+    result = runner.invoke(
+        cli.app,
+        ["generate-allowlist", "cap", "file", str(file_path)],
+        input="n\n",
+    )
+
+    assert result.exit_code == 0
+    assert result.stdout.count("allowlist-db cpsec add") == 3
+    assert "showing 3 of" not in result.stdout
 
 
 def test_generate_allowlist_text_option_writes_commands_to_file(tmp_path, monkeypatch):
